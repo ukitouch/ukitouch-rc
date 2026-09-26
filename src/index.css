@@ -1,0 +1,161 @@
+/* Cast's own layout. The shell's components keep their own styling; this is
+   the page and the watch overlay around them. */
+
+.cast-page {
+  max-width: 32rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cast-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cast-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cast-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cast-note {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #6b7280;
+}
+
+.cast-error {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #ef4444;
+}
+
+/* Watching: the frame fills the screen, the controls float over it. */
+
+.stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+.stage-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.stage-bar,
+.stage-scrim {
+  transition: opacity 0.3s;
+}
+
+.stage-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #e5e7eb;
+  background-image: linear-gradient(to bottom, rgb(0 0 0 / 0.8), transparent);
+}
+
+.stage-peer {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-note {
+  color: #9ca3af;
+}
+
+.stage-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.stage-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.stage-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage-drawer {
+  position: absolute;
+  top: 0;
+  right: -20rem;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: 20rem;
+  max-width: 100%;
+  height: 100%;
+  background: #fff;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  transition: right 0.3s;
+}
+
+.stage-drawer-open {
+  right: 0;
+}
+
+.stage-drawer-head {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stage-drawer-title {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.stage-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cast-note {
+    color: #9ca3af;
+  }
+
+  .stage-drawer {
+    background: #111827;
+  }
+
+  .stage-drawer-head {
+    border-color: #1f2937;
+  }
+
+  .stage-drawer-title {
+    color: #e5e7eb;
+  }
+}

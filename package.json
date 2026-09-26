@@ -1,0 +1,15 @@
+{
+  "name": "yatouch-cast",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Screen casting extension for YATouch.",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "esbuild": "^0.24.0",
+    "typescript": "^5"
+  }
+}
