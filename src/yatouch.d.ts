@@ -165,6 +165,13 @@ export interface ScreenStream {
   stop(): Promise<void>;
 }
 
+/** Where a `PinchArea`'s content sits after a gesture, in area pixels. */
+export interface PinchTransform {
+  scale: number;
+  x: number;
+  y: number;
+}
+
 /** What an extension declares. */
 export interface ExtensionDefinition {
   id: string;
@@ -231,6 +238,14 @@ export interface YatouchRuntime {
       action?: ReactNode;
       onClick?: () => void;
       open?: boolean;
+    }>;
+    /** pinch-to-zoom and pan surface */
+    PinchArea: ComponentType<{
+      min?: number;
+      max?: number;
+      onCommit?: (t: PinchTransform) => void;
+      className?: string;
+      children?: ReactNode;
     }>;
   };
   defineExtension(def: ExtensionDefinition): void;

@@ -1,4 +1,4 @@
-import { React, Button, PageHeader, PeerDeviceSearch } from "./host";
+import { React, Button, PageHeader, PeerDeviceSearch, PinchArea } from "./host";
 import { CastSettings } from "./settings";
 import {
   cancelWatch,
@@ -12,9 +12,6 @@ import {
 
 const { useEffect, useRef, useState } = React;
 
-/** How long the watch controls linger without input. */
-const IDLE_MS = 3000;
-
 export default function CastView() {
   const state = React.useSyncExternalStore(castStore.subscribe, castStore.get);
   const { devices, connection, sharing, error } = state;
@@ -24,29 +21,6 @@ export default function CastView() {
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [controls, setControls] = useState(true);
-  const hideAt = useRef(Date.now() + IDLE_MS);
-
-  /** Flip the watch controls, restarting the idle timer when they come out. */
-  const toggleControls = () => {
-    if (controls) {
-      setControls(false);
-    } else {
-      hideAt.current = Date.now() + IDLE_MS;
-      setControls(true);
-    }
-  };
-
-  // Fade the watch controls when nothing has happened for a while, but keep
-  // them up while settings are open.
-  useEffect(() => {
-    if (!isWatching) return;
-    if (!settingsOpen) hideAt.current = Date.now() + IDLE_MS;
-    const id = window.setInterval(() => {
-      if (!settingsOpen && Date.now() > hideAt.current) setControls(false);
-    }, 250);
-    return () => window.clearInterval(id);
-  }, [isWatching, settingsOpen]);
 
   // A fresh watch starts with settings closed.
   useEffect(() => {
@@ -129,29 +103,31 @@ export default function CastView() {
   if (watching) {
     return (
       <div className="stage">
-        <canvas
-          ref={canvasRef}
-          className="stage-canvas"
-          onClick={toggleControls}
-        />
+        <PinchArea className="stage-area">
+          <canvas ref={canvasRef} className="stage-canvas" />
+        </PinchArea>
 
-        <div
-          className={`stage-bar${controls || settingsOpen ? "" : " stage-hidden"}`}
+        <button
+          type="button"
+          className="stage-open"
+          aria-label="Settings"
+          onClick={() => setSettingsOpen(true)}
         >
-          <span className="stage-peer">
-            {watching.peerId}
-            {!watching.info && " · connecting…"}
-          </span>
-          {sharing && <span className="stage-note">· sharing your screen</span>}
-          <div className="stage-actions">
-            <Button variant="ghost" onClick={() => setSettingsOpen((o) => !o)}>
-              Settings
-            </Button>
-            <Button variant="danger" onClick={stopWatching}>
-              Stop
-            </Button>
-          </div>
-        </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
 
         <div
           className={`stage-scrim${settingsOpen ? "" : " stage-hidden"}`}
@@ -161,9 +137,19 @@ export default function CastView() {
         <div className={`stage-drawer${settingsOpen ? " stage-drawer-open" : ""}`}>
           <div className="stage-drawer-head">
             <span className="stage-drawer-title">Settings</span>
+            <span className="stage-peer">
+              {watching.peerId}
+              {!watching.info && " · connecting…"}
+              {sharing && " · sharing your screen"}
+            </span>
           </div>
           <div className="stage-drawer-body">
             <CastSettings />
+          </div>
+          <div className="stage-drawer-foot">
+            <Button variant="danger" onClick={stopWatching}>
+              Stop
+            </Button>
           </div>
         </div>
       </div>

@@ -40,7 +40,7 @@
   color: #ef4444;
 }
 
-/* Watching: the frame fills the screen, the controls float over it. */
+/* Watching: the frame fills the screen, the head floats over it. */
 
 .stage {
   position: relative;
@@ -49,48 +49,32 @@
   background: #000;
 }
 
+.stage .stage-area {
+  position: absolute;
+  inset: 0;
+}
+
 .stage-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
-.stage-bar,
-.stage-scrim {
-  transition: opacity 0.3s;
-}
-
-.stage-bar {
+.stage-open {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0.75rem;
+  right: 0.75rem;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
   color: #e5e7eb;
-  background-image: linear-gradient(to bottom, rgb(0 0 0 / 0.8), transparent);
-}
-
-.stage-peer {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stage-note {
-  color: #9ca3af;
-}
-
-.stage-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 0.75rem;
+  background: rgb(0 0 0 / 0.55);
 }
 
 .stage-scrim {
@@ -98,6 +82,15 @@
   inset: 0;
   z-index: 10;
   background: rgb(0 0 0 / 0.4);
+  transition: opacity 0.3s;
+}
+
+.stage-peer {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #9ca3af;
 }
 
 .stage-hidden {
@@ -129,6 +122,15 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+.stage-drawer-foot {
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.stage-drawer-foot button {
+  width: 100%;
+}
+
 .stage-drawer-title {
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -151,7 +153,8 @@
     background: #111827;
   }
 
-  .stage-drawer-head {
+  .stage-drawer-head,
+  .stage-drawer-foot {
     border-color: #1f2937;
   }
 

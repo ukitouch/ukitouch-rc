@@ -12,5 +12,5 @@ export const {
   startScreenStream,
 } = host;
 
-export const { Button, PageHeader, PeerDeviceSearch, Select, SettingRow } =
+export const { Button, PageHeader, PeerDeviceSearch, PinchArea, Select, SettingRow } =
   host.components;
