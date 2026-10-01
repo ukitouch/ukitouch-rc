@@ -1,19 +1,25 @@
 import { React, Button, Select, SettingRow } from "./host";
-import { castStore, setCursor, setResolution } from "./api";
-import type { HostPlatform, ScreenSize } from "./yatouch";
+import {
+  castStore,
+  setMode,
+  setInputMode,
+  setResolution,
+  setShowCursor,
+} from "./main";
+import type { ScreenSize } from "./yatouch";
 
 /** The entry that asks for the peer's own size. */
 const SOURCE = "source";
 
-/** One switchable option, and the hosts that expose it. */
-interface Toggle {
-  label: string;
-  hint: string;
-  on: boolean;
-  onChange: (on: boolean) => void;
-  /** Absent means every host. */
-  platform?: HostPlatform;
-}
+const MODES = [
+  { value: "cast", label: "Watch" },
+  { value: "control", label: "Control" },
+];
+
+const INPUT_MODES = [
+  { value: "cursor", label: "Cursor" },
+  { value: "touch", label: "Touch" },
+];
 
 const TIERS = [
   2160, 1440, 1080, 960, 900, 720, 600, 576, 540, 480, 432, 360, 320, 288, 240, 216, 180,
@@ -31,23 +37,12 @@ function resolutions(source?: ScreenSize) {
   ];
 }
 
-/**
- * The switches Cast exposes, filtered to what this host can do.
- */
+/** What Cast does with this peer while the watch is up. */
 export function CastSettings() {
-  const { settings, platform, connection } = React.useSyncExternalStore(
+  const { settings, connection } = React.useSyncExternalStore(
     castStore.subscribe,
     castStore.get
   );
-  const toggles: Toggle[] = [
-    {
-      label: "Show pointer",
-      hint: "Ask the peer to include its mouse cursor in the stream.",
-      on: settings.cursor,
-      onChange: setCursor,
-    },
-  ];
-  const shown = toggles.filter((t) => !t.platform || t.platform === platform);
   const source =
     connection.status === "connected" ? connection.info?.source : undefined;
   const options = resolutions(source);
@@ -57,6 +52,55 @@ export function CastSettings() {
 
   return (
     <div className="cast-settings">
+      <SettingRow
+        label="Mode"
+        hint={
+          settings.mode === "control"
+            ? "Drive the peer, not just watch it."
+            : "Watch the peer's screen."
+        }
+        action={
+          <Select
+            value={settings.mode}
+            options={MODES}
+            ariaLabel="Mode"
+            onChange={(v) => setMode(v === "control" ? "control" : "cast")}
+          />
+        }
+      />
+      {settings.mode === "control" ? (
+        <SettingRow
+          label="Pointer"
+          hint={
+            settings.inputMode === "touch"
+              ? "Tap and drag straight on the screen."
+              : "Move a pointer over the screen."
+          }
+          action={
+            <Select
+              value={settings.inputMode}
+              options={INPUT_MODES}
+              ariaLabel="Pointer"
+              onChange={(v) =>
+                setInputMode(v === "touch" ? "touch" : "cursor")
+              }
+            />
+          }
+        />
+      ) : (
+        <SettingRow
+          label="Show pointer"
+          hint="Ask the peer to include its mouse cursor in the stream."
+          action={
+            <Button
+              variant="ghost"
+              onClick={() => setShowCursor(!settings.cursor)}
+            >
+              {settings.cursor ? "On" : "Off"}
+            </Button>
+          }
+        />
+      )}
       <SettingRow
         label="Resolution"
         hint="How much of the peer's screen to receive."
@@ -69,18 +113,6 @@ export function CastSettings() {
           />
         }
       />
-      {shown.map((t) => (
-        <SettingRow
-          key={t.label}
-          label={t.label}
-          hint={t.hint}
-          action={
-            <Button variant="ghost" onClick={() => t.onChange(!t.on)}>
-              {t.on ? "On" : "Off"}
-            </Button>
-          }
-        />
-      ))}
     </div>
   );
 }

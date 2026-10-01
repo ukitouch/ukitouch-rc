@@ -1,5 +1,5 @@
 import { React, defineExtension } from "./host";
-import { initCast } from "./api";
+import { initCast } from "./main";
 import { applyStyles } from "./styles";
 import CastView from "./view";
 

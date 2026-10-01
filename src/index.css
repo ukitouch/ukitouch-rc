@@ -54,12 +54,28 @@
   inset: 0;
 }
 
+.stage-zoom {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
 .stage-canvas {
   display: block;
   width: auto;
   height: auto;
   max-width: 100%;
   max-height: 100%;
+}
+
+.stage-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .stage-open {

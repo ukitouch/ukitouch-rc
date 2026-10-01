@@ -1,23 +1,70 @@
 import { React, Button, PageHeader, PeerDeviceSearch, PinchArea } from "./host";
 import { CastSettings } from "./settings";
+import { castStore, stopSharing } from "./main";
 import {
+  attachViewer,
   cancelWatch,
-  castStore,
+  setCursorSink,
   setViewer,
-  stopSharing,
   stopWatching,
-  watch,
+  requestWatch,
+  type PeerCursor,
   type StreamTile,
-} from "./api";
+} from "./viewer";
+import type { InputHandlers } from "./input";
+import type { CursorSpot } from "./picture";
 
 const { useEffect, useRef, useState } = React;
 
+/** The smallest a peer cursor is drawn at. */
+const MIN_CURSOR = 16;
+
 export default function CastView() {
   const state = React.useSyncExternalStore(castStore.subscribe, castStore.get);
-  const { devices, connection, sharing, error } = state;
+  const { devices, connection, screenInfo, error, settings } = state;
   const watching = connection.status === "connected" ? connection : null;
+  const sharing = screenInfo !== null;
   const isWatching = watching !== null;
+  const controlling = watching !== null && settings.mode === "control";
+  const hideCursor = controlling && settings.inputMode === "cursor";
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const zoomRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const cursorRef = useRef<HTMLImageElement | null>(null);
+  const [peerCursor, setPeerCursor] = useState<CursorImage | null>(null);
+  /** Cursor's coordinates on the viewer's screen. */
+  const spotRef = useRef<CursorSpot | null>(null);
+  const imageRef = useRef<CursorImage | null>(null);
+
+  const applySpot = () => {
+    const overlay = cursorRef.current;
+    const stage = stageRef.current;
+    const canvas = canvasRef.current;
+    const image = imageRef.current;
+    const spot = spotRef.current;
+    if (!overlay) return;
+    if (!stage || !canvas || !image || !spot) {
+      overlay.style.opacity = "0";
+      return;
+    }
+    const c = castStore.get().connection;
+    const source = c.status === "connected" ? c.info?.source : undefined;
+    const fit = source ? canvas.offsetWidth / source.width : 1;
+    // Layout width, not the rect: a pinch scales the picture, not the cursor.
+    // A picture scaled far down would leave a cursor too small to aim with, so
+    // it is never drawn below a readable size.
+    const k = Math.max(MIN_CURSOR / image.width, fit);
+    const r = stage.getBoundingClientRect();
+    overlay.style.width = `${image.width * k}px`;
+    overlay.style.height = `${image.height * k}px`;
+    overlay.style.transform = `translate(${spot.x - r.left - image.xhot * k}px, ${spot.y - r.top - image.yhot * k}px)`;
+    overlay.style.opacity = "1";
+  };
+
+  const placeCursor = (spot: CursorSpot | null) => {
+    spotRef.current = spot;
+    applySpot();
+  };
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -100,12 +147,80 @@ export default function CastView() {
     }
   }, [watching?.info]);
 
+  // The peer's cursor image, will be drawn by viewer itself.
+  useEffect(() => {
+    setCursorSink((c) => {
+      const image = c ? toCursorImage(c) : null;
+      imageRef.current = image;
+      setPeerCursor(image);
+    });
+    return () => setCursorSink(null);
+  }, []);
+
+  useEffect(() => {
+    if (hideCursor) return;
+    imageRef.current = null;
+    setPeerCursor(null);
+  }, [hideCursor]);
+
+  const [handlers, setHandlers] = useState<InputHandlers | null>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const stage = zoomRef.current;
+    if (!isWatching || !canvas || !stage) {
+      setHandlers(null);
+      return;
+    }
+    const next = attachViewer(canvas, stage, placeCursor);
+    setHandlers(next);
+    return () => {
+      next?.dispose();
+      setHandlers(null);
+    };
+  }, [isWatching]);
+
+  // hold focus
+  useEffect(() => {
+    if (controlling) canvasRef.current?.focus();
+  }, [controlling]);
+
+  // The overlay only exists once the image has arrived.
+  useEffect(() => {
+    applySpot();
+  }, [peerCursor]);
+
   if (watching) {
     return (
-      <div className="stage">
-        <PinchArea className="stage-area">
-          <canvas ref={canvasRef} className="stage-canvas" />
+      <div className="stage" ref={stageRef}>
+        <PinchArea
+          className="stage-area"
+          {...(handlers
+            ? {
+                onPointerDown: handlers.onPointerDown,
+                onPointerMove: handlers.onPointerMove,
+                onPointerUp: handlers.onPointerUp,
+                onPointerCancel: handlers.onPointerCancel,
+              }
+            : {})}
+        >
+          <div className="stage-zoom" ref={zoomRef}>
+            <canvas
+              ref={canvasRef}
+              className="stage-canvas"
+              tabIndex={0}
+              style={hideCursor ? { cursor: "none" } : undefined}
+            />
+          </div>
         </PinchArea>
+
+        {hideCursor && peerCursor && (
+          <img
+            ref={cursorRef}
+            className="stage-cursor"
+            src={peerCursor.url}
+            alt=""
+          />
+        )}
 
         <button
           type="button"
@@ -138,7 +253,7 @@ export default function CastView() {
           <div className="stage-drawer-head">
             <span className="stage-drawer-title">Settings</span>
             <span className="stage-peer">
-              {watching.peerId}
+              {watching.label}
               {!watching.info && " · connecting…"}
               {sharing && " · sharing your screen"}
             </span>
@@ -198,12 +313,12 @@ export default function CastView() {
             if (connection.status === "connecting") {
               cancelWatch();
             } else if (selected) {
-              void watch(
+              void requestWatch(
                 selected.uuid,
                 selected.remark ?? selected.name ?? "Unknown device"
               );
             } else if (text.trim()) {
-              void watch(text.trim(), text.trim());
+              void requestWatch(text.trim(), text.trim());
             }
           }}
           disabled={connection.status !== "connecting" && !canConnect}
@@ -213,4 +328,42 @@ export default function CastView() {
       </div>
     </div>
   );
+}
+
+/** The peer's cursor, ready to draw. */
+interface CursorImage {
+  url: string;
+  width: number;
+  height: number;
+  xhot: number;
+  yhot: number;
+}
+
+/** Turn the peer's premultiplied RGBA into something an `<img>` can show. */
+function toCursorImage(c: PeerCursor): CursorImage {
+  const canvas = document.createElement("canvas");
+  canvas.width = c.width;
+  canvas.height = c.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { url: "", width: c.width, height: c.height, xhot: c.xhot, yhot: c.yhot };
+
+  const image = ctx.createImageData(c.width, c.height);
+  const src = c.pixels;
+  for (let i = 0; i < src.length; i += 4) {
+    const a = src[i + 3];
+    image.data[i + 3] = a;
+    if (a === 0) continue;
+    // X hands out premultiplied alpha; ImageData wants it straight.
+    image.data[i] = Math.min(255, Math.round((src[i] * 255) / a));
+    image.data[i + 1] = Math.min(255, Math.round((src[i + 1] * 255) / a));
+    image.data[i + 2] = Math.min(255, Math.round((src[i + 2] * 255) / a));
+  }
+  ctx.putImageData(image, 0, 0);
+  return {
+    url: canvas.toDataURL(),
+    width: c.width,
+    height: c.height,
+    xhot: c.xhot,
+    yhot: c.yhot,
+  };
 }

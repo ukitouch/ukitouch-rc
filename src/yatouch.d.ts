@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 
 /** A handle that can be released to free a subscription or listener. */
 export interface Disposable {
@@ -124,10 +124,19 @@ export interface DamageFrame extends Damage {
   data: Uint8Array;
 }
 
+/**
+ * How the cursor appears in the stream.
+ * 
+ * - `"off"` - the cursor is not sent
+ * - `"composite"` - the cursor is captured into the picture
+ * - `"raw"` - the cursor's image was sent, and should be drawn by viewer itself
+ */
+export type Cursor = "off" | "composite" | "raw";
+
 /** What a caller can ask of a screen source. */
 export interface CaptureOptions {
-  /** Include the pointer in the frames. */
-  cursor?: boolean;
+  /** How the pointer appears in the stream. */
+  cursor?: Cursor;
 }
 
 /** What a caller can ask of a stream. */
@@ -181,6 +190,22 @@ export interface ExtensionDefinition {
   activate?: (ctx: ExtensionContext) => void | (() => void);
   component?: ComponentType;
 }
+
+/** A point. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** A pointer button. */
+export type MouseButton = "left" | "middle" | "right" | "back" | "forward";
+
+/** A synthesized input event, in screen pixels. */
+export type InputEvent =
+  | { kind: "move"; x: number; y: number }
+  | { kind: "button"; at?: Point; button: MouseButton; pressed: boolean }
+  | { kind: "scroll"; at?: Point; dx: number; dy: number }
+  | { kind: "key"; code: string; pressed: boolean };
 
 /** The runtime surface exposed on `window.yatouch`. */
 export interface YatouchRuntime {
@@ -246,6 +271,11 @@ export interface YatouchRuntime {
       onCommit?: (t: PinchTransform) => void;
       className?: string;
       children?: ReactNode;
+      // Take over pointer handling.
+      onPointerDown?: (e: ReactPointerEvent<HTMLDivElement>) => void;
+      onPointerMove?: (e: ReactPointerEvent<HTMLDivElement>) => void;
+      onPointerUp?: (e: ReactPointerEvent<HTMLDivElement>) => void;
+      onPointerCancel?: (e: ReactPointerEvent<HTMLDivElement>) => void;
     }>;
   };
   defineExtension(def: ExtensionDefinition): void;
@@ -267,6 +297,14 @@ export interface YatouchRuntime {
     channel: Channel,
     options?: StreamOptions
   ): Promise<ScreenStream>;
+  /** Bring the input backend up. */
+  startInput(): Promise<void>;
+  /** Synthesize a batch of input events. */
+  injectInput(events: InputEvent[]): Promise<void>;
+  /** Release everything the input backend is holding down. */
+  releaseInput(): Promise<void>;
+  /** Release and drop the input backend. */
+  stopInput(): Promise<void>;
   showToast(message: string, kind?: ToastKind): void;
 }
 
