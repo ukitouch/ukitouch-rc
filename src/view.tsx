@@ -106,7 +106,15 @@ export default function CastView() {
     const source = c.status === "connected" ? c.info?.source : undefined;
 
     // cursor image's style
-    const fit = source ? canvas.offsetWidth / source.width : 1;
+    const area = canvas.closest<HTMLElement>(".stage-area") ?? canvas;
+    const contain =
+      canvas.offsetWidth > 0 && canvas.offsetHeight > 0
+        ? Math.min(
+          area.clientWidth / canvas.offsetWidth,
+          area.clientHeight / canvas.offsetHeight
+        )
+        : 1;
+    const fit = source ? (canvas.offsetWidth * contain) / source.width : 1;
     const k = Math.max(MIN_CURSOR / image.width, fit);
     const r = stage.getBoundingClientRect();
     overlay.style.width = `${image.width * k}px`;

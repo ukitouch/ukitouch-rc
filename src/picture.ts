@@ -2,8 +2,6 @@ import type { Point, ScreenSize } from "./yatouch";
 
 //#region Magics
 
-/** The picture's min bounds. */
-const MIN_SCALE = 1;
 /** The picture's max bounds. */
 const MAX_SCALE = 8;
 
@@ -132,29 +130,40 @@ export class ViewerPicture extends EventTarget {
     };
   }
 
+  /** The scale at which the picture fits inside the area. */
+  containScale(): number {
+    const { w, h } = this.areaBox;
+    const { w: pw, h: ph } = this.pictureBox;
+    return pw > 0 && ph > 0 ? Math.min(w / pw, h / ph) : 1;
+  }
+
   /** Apply the picture to the displaying areas. */
   apply(t: Transform): void {
     const next = this.constrain(t);
+    const scale = this.containScale() * next.scale;
     this.view.scale = next.scale;
     this.view.x = next.x;
     this.view.y = next.y;
     this.stage.style.transformOrigin = "0 0";
-    this.stage.style.transform = `translate3d(${next.x - this.pictureBox.ox * next.scale}px, ${next.y - this.pictureBox.oy * next.scale}px, 0) scale(${next.scale})`;
+    this.stage.style.transform = `translate3d(${next.x - this.pictureBox.ox * scale}px, ${next.y - this.pictureBox.oy * scale}px, 0) scale(${scale})`;
     this.onCursor?.(this.cursorCoords ? this.spotOf(this.cursorCoords) : null);
   }
 
   /** Automatically pan the picture to keep the host's cursor in view. */
   followCursor(): void {
-    if (!this.cursorCoords || this.view.scale <= MIN_SCALE) return;
+    if (!this.cursorCoords) return;
 
     const size = this.sourceSize();
     if (!size) return;
     this.measure();
+    if (this.view.scale <= 1) return;
+
     const { w, h } = this.areaBox;
+    const scale = this.containScale() * this.view.scale;
     const cx =
-      this.view.x + ((this.cursorCoords.x + 0.5) / size.width) * this.pictureBox.w * this.view.scale;
+      this.view.x + ((this.cursorCoords.x + 0.5) / size.width) * this.pictureBox.w * scale;
     const cy =
-      this.view.y + ((this.cursorCoords.y + 0.5) / size.height) * this.pictureBox.h * this.view.scale;
+      this.view.y + ((this.cursorCoords.y + 0.5) / size.height) * this.pictureBox.h * scale;
     let x = this.view.x;
     let y = this.view.y;
     if (cx < 0) x -= cx;
@@ -193,9 +202,10 @@ export class ViewerPicture extends EventTarget {
   /** Constrain the transform to a legal one. */
   constrain(t: Transform): Transform {
     const { w, h } = this.areaBox;
-    const scale = Math.min(Math.max(t.scale, MIN_SCALE), MAX_SCALE);
-    const spanX = this.pictureBox.w * scale;
-    const spanY = this.pictureBox.h * scale;
+    const scale = Math.min(Math.max(t.scale, 1), MAX_SCALE);
+    const fit = this.containScale() * scale;
+    const spanX = this.pictureBox.w * fit;
+    const spanY = this.pictureBox.h * fit;
     return {
       scale,
       x: spanX <= w ? (w - spanX) / 2 : Math.min(0, Math.max(t.x, w - spanX)),
