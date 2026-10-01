@@ -107,7 +107,7 @@ export interface ScreenInfo {
   height: number;
   /** Always `"rgba"`. */
   format: "rgba";
-  /** The screen's own size, when it is sending us a scaled version. */
+  /** The screen's own size, will be affected by resolution on the host side. */
   source?: ScreenSize;
 }
 
