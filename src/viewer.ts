@@ -42,7 +42,7 @@ export function createViewer(options: ViewerOptions): InputHandlers {
     cursor: () => picture.cursor,
     center: () => picture.center(),
   };
-  const input = new ViewerInput({ channel, map, mode, control });
+  const input = new ViewerInput({ channel, map, mode, control, keys });
 
   // Handle picture updating events emitted by input side.
   input.on("begin", () => picture.begin());
@@ -67,9 +67,6 @@ export function createViewer(options: ViewerOptions): InputHandlers {
     passive: false,
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault(), stop);
-  keys.addEventListener("blur", () => input.releaseKeys(), stop);
-  keys.addEventListener("keydown", (e) => input.onKey(e, true), stop);
-  keys.addEventListener("keyup", (e) => input.onKey(e, false), stop);
 
   return {
     onPointerDown: input.onPointerDown,

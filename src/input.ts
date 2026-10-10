@@ -90,6 +90,8 @@ export interface InputOptions {
    * TODO: should it be state strings?
    */
   control: () => boolean;
+  /** The field the keyboard and IME write into. */
+  keys: HTMLTextAreaElement;
 }
 
 const middle = (a: Point, b: Point): Point => ({
@@ -98,6 +100,12 @@ const middle = (a: Point, b: Point): Point => ({
 });
 
 const distance = (a: Point, b: Point): number => Math.hypot(b.x - a.x, b.y - a.y);
+
+/** A tap. */
+const tap = (code: string): InputEvent[] => [
+  { kind: "key", code, pressed: true },
+  { kind: "key", code, pressed: false },
+];
 
 export class ViewerInput extends EventTarget implements InputHandlers {
   //#region PGesture
@@ -156,17 +164,47 @@ export class ViewerInput extends EventTarget implements InputHandlers {
   private readonly control: () => boolean;
   /** Key codes the host still has pressed. */
   private readonly keyHeld = new Set<string>();
+  /** The field the keyboard and IME write into. */
+  private readonly keys: HTMLTextAreaElement;
+  /** Whether an IME is composing in that field right now. */
+  private composing = false;
+  /** Stops listening to that field. */
+  private readonly keysStop = new AbortController();
 
   //#endregion
 
   constructor(options: InputOptions) {
     super();
 
-    const { channel, map, mode, control } = options;
+    const { channel, map, mode, control, keys } = options;
     this.channel = channel;
     this.map = map;
     this.mode = mode;
     this.control = control;
+    this.keys = keys;
+
+    // keys events
+    const on = { signal: this.keysStop.signal };
+    keys.addEventListener("blur", () => this.releaseKeys(), on);
+    keys.addEventListener("keydown", (e) => this.onKey(e, true), on);
+    keys.addEventListener("keyup", (e) => this.onKey(e, false), on);
+    keys.addEventListener("beforeinput", (e) => this.onEdit(e.inputType), on);
+    keys.addEventListener("compositionstart", () => (this.composing = true), on);
+    keys.addEventListener(
+      "compositionend",
+      () => {
+        this.composing = false;
+        this.flushKeys();
+      },
+      on
+    );
+    keys.addEventListener(
+      "input",
+      () => {
+        if (!this.composing) this.flushKeys();
+      },
+      on
+    );
   }
 
   /** Whether a gesture is currently running. */
@@ -227,7 +265,7 @@ export class ViewerInput extends EventTarget implements InputHandlers {
   }
 
   /** Releases for everything the host still has down. */
-  releaseKeys(): void {
+  private releaseKeys(): void {
     const events = [...this.keyHeld].map((code) => ({
       kind: "key" as const,
       code,
@@ -235,6 +273,46 @@ export class ViewerInput extends EventTarget implements InputHandlers {
     }));
     this.keyHeld.clear();
     if (events.length > 0) this.send(events);
+  }
+
+  /** Type what the field has collected, and flush it. */
+  private flushKeys(): void {
+    const text = this.keys.value;
+    if (!text) return;
+
+    this.keys.value = "";
+    this.typeText(text);
+  }
+
+  /** Type a string on the host. */
+  private typeText(text: string): void {
+    if (!this.control() || text === "") return;
+
+    const events: InputEvent[] = [];
+    text.split(/\r\n|\r|\n/).forEach((line, i) => {
+      if (i > 0) events.push(...tap("Enter"));
+      if (line) events.push({ kind: "text", text: line });
+    });
+    this.send(events);
+  }
+
+  /**
+   * Type the key an edit stands for.
+   *
+   * @param inputType a `beforeinput`'s {@link InputEvent.inputType}
+   */
+  private onEdit(inputType: string): void {
+    if (!this.control()) return;
+
+    const code =
+      inputType === "deleteContentBackward"
+        ? "Backspace"
+        : inputType === "deleteContentForward"
+          ? "Delete"
+          : inputType === "insertLineBreak" || inputType === "insertParagraph"
+            ? "Enter"
+            : null;
+    if (code) this.send(tap(code));
   }
 
   //#region Gesture
@@ -569,19 +647,28 @@ export class ViewerInput extends EventTarget implements InputHandlers {
     this.send([{ kind: "scroll", at: p, dx, dy }]);
   }
 
-  onKey(e: KeyboardEvent, pressed: boolean): void {
+  private onKey(e: KeyboardEvent, pressed: boolean): void {
     if (!this.control()) return;
+    // What an IME sends while it composes is not ours to forward.
+    if (e.isComposing || e.keyCode === 229) return;
+    // A character on keyboard that needs a `shift` should be an unknown char.
+    if (e.key.length === 1 || (e.keyCode >= 32 && e.keyCode < 127)) return;
+    // A soft keyboard names a special key in `key` alone, with no `code`.
+    const code = e.code || e.key;
+    if (!code || code === "Unidentified") return;
     // The host's own repeat is the one that should show.
     if (pressed && e.repeat) return;
     e.preventDefault();
-    if (pressed) this.keyHeld.add(e.code);
-    else this.keyHeld.delete(e.code);
-    this.send([{ kind: "key", code: e.code, pressed }]);
+
+    if (pressed) this.keyHeld.add(code);
+    else this.keyHeld.delete(code);
+    this.send([{ kind: "key", code, pressed }]);
   }
 
   //#endregion
 
   dispose(): void {
+    this.keysStop.abort();
     if (this.tapDrag) clearTimeout(this.tapDrag.timer);
     if (this.flushFrame) cancelAnimationFrame(this.flushFrame);
     this.flushFrame = 0;

@@ -205,7 +205,8 @@ export type InputEvent =
   | { kind: "move"; x: number; y: number }
   | { kind: "button"; at?: Point; button: MouseButton; pressed: boolean }
   | { kind: "scroll"; at?: Point; dx: number; dy: number }
-  | { kind: "key"; code: string; pressed: boolean };
+  | { kind: "key"; code: string; pressed: boolean }
+  | { kind: "text"; text: string };
 
 /** The runtime surface exposed on `window.yatouch`. */
 export interface YatouchRuntime {
