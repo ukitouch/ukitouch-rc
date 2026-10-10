@@ -17,6 +17,8 @@ export interface ViewerOptions {
   canvas: HTMLCanvasElement;
   /** The HTMLElement that the picture's own transform is applied to. */
   stage: HTMLElement;
+  /** The hidden field the keyboard's events come from. */
+  keys: HTMLTextAreaElement;
   channel: Channel;
   /** The host's own screen size. */
   source: () => ScreenSize | undefined;
@@ -30,7 +32,7 @@ export interface ViewerOptions {
 
 /** Bring up the picture and its input, and wire them to each other's events. */
 export function createViewer(options: ViewerOptions): InputHandlers {
-  const { canvas, stage, channel, source, mode, control, onCursor } = options;
+  const { canvas, stage, keys, channel, source, mode, control, onCursor } = options;
   const picture = new ViewerPicture({ canvas, stage, source, onCursor });
 
   const map: ScreenMap = {
@@ -65,9 +67,9 @@ export function createViewer(options: ViewerOptions): InputHandlers {
     passive: false,
   });
   canvas.addEventListener("contextmenu", (e) => e.preventDefault(), stop);
-  canvas.addEventListener("blur", () => input.releaseKeys(), stop);
-  canvas.addEventListener("keydown", (e) => input.onKey(e, true), stop);
-  canvas.addEventListener("keyup", (e) => input.onKey(e, false), stop);
+  keys.addEventListener("blur", () => input.releaseKeys(), stop);
+  keys.addEventListener("keydown", (e) => input.onKey(e, true), stop);
+  keys.addEventListener("keyup", (e) => input.onKey(e, false), stop);
 
   return {
     onPointerDown: input.onPointerDown,
@@ -194,12 +196,14 @@ export function stopWatching(): void {
 export function attachViewer(
   canvas: HTMLCanvasElement,
   stage: HTMLElement,
+  keys: HTMLTextAreaElement,
   onCursor: (spot: CursorSpot | null) => void
 ): InputHandlers | null {
   if (!watchChannel) return null;
   return createViewer({
     canvas,
     stage,
+    keys,
     channel: watchChannel,
     source: sourceSize,
     mode: () => castStore.get().settings.inputMode,
