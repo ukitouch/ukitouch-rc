@@ -14,6 +14,9 @@ const GESTURE_THRESHOLD = 8;
 /** How long a tap stays armed for the next touch to start a drag (touchpad-like). */
 const DRAG_ARM_MS = 200;
 
+/** How long a pad button has to be held before it stays down. */
+const PAD_HOLD_MS = 400;
+
 //#endregion
 
 /**
@@ -64,6 +67,14 @@ export interface InputHandlers {
   onPointerMove(e: PointerLike): void;
   onPointerUp(e: PointerLike): void;
   onPointerCancel(e: PointerLike): void;
+  /** A pad button went down.. */
+  padDown(index: number, codes: string[]): void;
+  /** A pad button came up. */
+  padUp(index: number): void;
+  /** A pad button's gesture was taken over by something else. */
+  padCancel(index: number): void;
+  /** Watch the pad buttons being held down on the host by index. */
+  onPad(handler: (held: readonly number[]) => void): void;
   dispose(): void;
 }
 
@@ -164,6 +175,8 @@ export class ViewerInput extends EventTarget implements InputHandlers {
   private readonly control: () => boolean;
   /** Key codes the host still has pressed. */
   private readonly keyHeld = new Set<string>();
+  /** The pad buttons. */
+  private readonly padButtons = new Map<number, { codes: string[]; timer: number; held: boolean }>();
   /** The field the keyboard and IME write into. */
   private readonly keys: HTMLTextAreaElement;
   /** Whether an IME is composing in that field right now. */
@@ -272,7 +285,84 @@ export class ViewerInput extends EventTarget implements InputHandlers {
       pressed: false,
     }));
     this.keyHeld.clear();
+
+    for (const down of this.padButtons.values()) clearTimeout(down.timer);
+    if (this.padButtons.size > 0) {
+      this.padButtons.clear();
+      this.emitPad();
+    }
+
     if (events.length > 0) this.send(events);
+  }
+
+  /** A pad button went down. */
+  padDown(index: number, codes: string[]): void {
+    if (!this.control() || codes.length === 0) return;
+
+    const down = this.padButtons.get(index);
+    if (down) {
+      // already down
+      if (down.held) this.releasePad(index);
+      return;
+    }
+
+    const entry = { codes, held: false, timer: 0 };
+    this.padButtons.set(index, entry);
+    entry.timer = window.setTimeout(() => {
+      entry.held = true;
+      for (const code of codes) this.keyHeld.add(code);
+      this.send(codes.map((code): InputEvent => ({ kind: "key", code, pressed: true })));
+      this.emitPad();
+    }, PAD_HOLD_MS);
+  }
+
+  /** A pad button came up. */
+  padUp(index: number): void {
+    const down = this.padButtons.get(index);
+    if (!down || down.held) return;
+    clearTimeout(down.timer);
+    this.padButtons.delete(index);
+
+    const { codes } = down;
+    this.send([
+      ...codes.map((code): InputEvent => ({ kind: "key", code, pressed: true })),
+      ...[...codes].reverse().map((code): InputEvent => ({ kind: "key", code, pressed: false })),
+    ]);
+  }
+
+  /** A pad button's gesture was taken over, drop the tap. */
+  padCancel(index: number): void {
+    const down = this.padButtons.get(index);
+    if (!down || down.held) return;
+    clearTimeout(down.timer);
+    this.padButtons.delete(index);
+  }
+
+  /** Let a held pad button go. */
+  private releasePad(index: number): void {
+    const down = this.padButtons.get(index);
+    if (!down?.held) return;
+    this.padButtons.delete(index);
+
+    const events: InputEvent[] = [];
+    for (const code of [...down.codes].reverse()) {
+      events.push({ kind: "key", code, pressed: false });
+      this.keyHeld.delete(code);
+    }
+    this.send(events);
+    this.emitPad();
+  }
+
+  /** Listen to the pad buttons being held. */
+  onPad(handler: (held: readonly number[]) => void): void {
+    this.addEventListener("pad", (e) => handler((e as CustomEvent<number[]>).detail));
+  }
+
+  private emitPad(): void {
+    const held = [...this.padButtons]
+      .filter(([, down]) => down.held)
+      .map(([index]) => index);
+    this.dispatchEvent(new CustomEvent<number[]>("pad", { detail: held }));
   }
 
   /** Type what the field has collected, and flush it. */
@@ -670,6 +760,9 @@ export class ViewerInput extends EventTarget implements InputHandlers {
   dispose(): void {
     this.keysStop.abort();
     if (this.tapDrag) clearTimeout(this.tapDrag.timer);
+    for (const down of this.padButtons.values()) clearTimeout(down.timer);
+    this.padButtons.clear();
+
     if (this.flushFrame) cancelAnimationFrame(this.flushFrame);
     this.flushFrame = 0;
     this.cursorQueued = false;

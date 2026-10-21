@@ -96,7 +96,7 @@
 .stage-keys-open {
   position: absolute;
   right: 0.75rem;
-  bottom: 0.75rem;
+  top: 3.5rem;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -106,6 +106,87 @@
   border-radius: 9999px;
   color: #e5e7eb;
   background: rgb(0 0 0 / 0.55);
+}
+
+.stage-pad {
+  position: absolute;
+  right: 0.75rem;
+  bottom: calc(0.75rem + var(--ime, 0px));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stage-pad-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 4.5rem);
+  overflow-x: auto;
+  overflow-y: hidden;
+  pointer-events: none;
+  scrollbar-width: none;
+}
+
+.stage-pad-row::-webkit-scrollbar {
+  display: none;
+}
+
+.stage-pad-open .stage-pad-row {
+  pointer-events: auto;
+}
+
+.stage-pad-key,
+.stage-pad-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  color: #e5e7eb;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.stage-pad-key {
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1;
+  white-space: nowrap;
+  touch-action: pan-x;
+  opacity: 0;
+  transform: translateX(0.5rem) scale(0.9);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.stage-pad-open .stage-pad-key {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.stage-pad-press {
+  background: rgb(255 255 255 / 0.3);
+}
+
+.stage-pad-held {
+  color: #111827;
+  background: rgb(229 231 235 / 0.95);
+}
+
+.stage-pad-toggle {
+  width: 2.25rem;
+  border-radius: 9999px;
+}
+
+.stage-pad-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.stage-pad-open .stage-pad-toggle svg {
+  transform: rotate(180deg);
 }
 
 .stage-open {
@@ -184,6 +265,135 @@
   color: #374151;
 }
 
+.stage-drawer-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 9999px;
+  color: #6b7280;
+}
+
+.keys-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.keys-dragging .keys-row {
+  transition: transform 0.15s ease;
+}
+
+.keys-dragging .keys-row-dragging {
+  transition: none;
+}
+
+.keys-row-handle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  color: #9ca3af;
+  touch-action: none;
+  user-select: none;
+}
+
+.keys-row-dragging {
+  position: relative;
+  z-index: 1;
+  border-radius: 0.5rem;
+  background: #f3f4f6;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.25);
+}
+
+.keys-row-main {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #f3f4f6;
+}
+
+.keys-row-drop {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  font-size: 1rem;
+  line-height: 1;
+  color: #6b7280;
+}
+
+.keys-preview {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: #374151;
+  background: #f3f4f6;
+  word-break: break-word;
+}
+
+.keys-input {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  background: #fff;
+  color: inherit;
+}
+
+.keys-group {
+  margin-top: 1rem;
+}
+
+.keys-group-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #6b7280;
+}
+
+.keys-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.keys-key {
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  line-height: 1;
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.keys-key-on {
+  color: #fff;
+  background: #2563eb;
+}
+
+.keys-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
 .stage-drawer-body {
   flex: 1;
   overflow-y: auto;
@@ -206,5 +416,42 @@
 
   .stage-drawer-title {
     color: #e5e7eb;
+  }
+
+  .stage-drawer-back,
+  .keys-row-drop,
+  .keys-row-handle {
+    color: #9ca3af;
+  }
+
+  .keys-row-main,
+  .keys-preview,
+  .keys-key {
+    color: #e5e7eb;
+    background: #1f2937;
+  }
+
+  .keys-input {
+    border-color: #374151;
+    background: #111827;
+    color: #e5e7eb;
+  }
+
+  .keys-key-on {
+    color: #fff;
+    background: #3b82f6;
+  }
+
+  .keys-row-dragging {
+    background: #1f2937;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-pad-key,
+  .stage-pad-toggle svg,
+  .keys-dragging .keys-row {
+    transition-delay: 0ms !important;
+    transition-duration: 0.01ms;
   }
 }

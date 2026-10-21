@@ -12,10 +12,10 @@ export type HostPlatform = "windows" | "linux" | "android";
 export type Layout = "withSidebar" | "fullscreen";
 
 /** Host system info reported by the hello handshake. */
-export interface HelloInfo {
-  name?: string | null;
-  platform?: string | null;
-  os?: string | null;
+export interface HostInfo {
+  name: string | null;
+  platform: Platform | null;
+  os: string | null;
 }
 
 /** A bidirectional data channel over some transport. */
@@ -63,8 +63,6 @@ export interface DeviceRecord {
   firstSeen: number;
   lastSeen: number | null;
   protocol: string | null;
-  online: boolean | null;
-  meta: Record<string, unknown>;
 }
 
 /** USB device reported by the backend. */
@@ -76,7 +74,7 @@ export interface UsbDevice {
 /**
  * API the host hands to an extension's logic layer (`activate`).
  */
-export interface ExtensionContext {
+export interface NetContext {
   readonly subscriptions: Disposable[];
   setLayout(layout: Layout): void;
   openChannel(request: OpenSpec): Promise<Channel>;
@@ -105,8 +103,6 @@ export interface ScreenSize {
 export interface ScreenInfo {
   width: number;
   height: number;
-  /** Always `"rgba"`. */
-  format: "rgba";
   /** The screen's own size, will be affected by resolution on the host side. */
   source?: ScreenSize;
 }
@@ -187,7 +183,7 @@ export interface ExtensionDefinition {
   title?: string;
   icon?: ReactNode;
   platforms?: HostPlatform[];
-  activate?: (ctx: ExtensionContext) => void | (() => void);
+  activate?: (ctx: NetContext) => void | (() => void);
   component?: ComponentType;
 }
 
@@ -281,7 +277,7 @@ export interface YatouchRuntime {
   };
   defineExtension(def: ExtensionDefinition): void;
   getHostPlatform(): Promise<HostPlatform>;
-  getHostInfo(): Promise<HelloInfo>;
+  getHostInfo(): Promise<HostInfo>;
   /** Hold the app fullscreen (Android only). */
   setFullscreen(on: boolean): Promise<void>;
   /** Read the system clipboard as plain text. */

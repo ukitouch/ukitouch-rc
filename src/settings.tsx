@@ -38,7 +38,7 @@ function resolutions(source?: ScreenSize) {
 }
 
 /** What Cast does with this peer while the watch is up. */
-export function CastSettings() {
+export function CastSettings({ onKeys }: { onKeys: () => void }) {
   const { settings, connection } = React.useSyncExternalStore(
     castStore.subscribe,
     castStore.get
@@ -113,6 +113,17 @@ export function CastSettings() {
           />
         }
       />
+      {settings.mode === "control" && (
+        <SettingRow
+          label="Keys"
+          hint="The buttons the control pad offers."
+          action={
+            <Button variant="ghost" onClick={onKeys}>
+              Edit
+            </Button>
+          }
+        />
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   type StreamTile,
 } from "./viewer";
 import type { InputHandlers } from "./input";
+import { KeysPanel, padLabel } from "./pad";
 import type { CursorSpot } from "./picture";
 
 const { useEffect, useRef, useState } = React;
@@ -81,6 +82,10 @@ export default function CastView() {
   const keysRef = useRef<HTMLTextAreaElement | null>(null);
   const [text, setText] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [panel, setPanel] = useState<"settings" | "keys">("settings");
+  const [padOpen, setPadOpen] = useState(false);
+  const [padHeld, setPadHeld] = useState<readonly number[]>([]);
+  const [padPressed, setPadPressed] = useState<readonly number[]>([]);
   const [handlers, setHandlers] = useState<InputHandlers | null>(null);
 
   //#endregion
@@ -245,6 +250,25 @@ export default function CastView() {
     if (!isWatching) setSettingsOpen(false);
   }, [isWatching]);
 
+  // The drawer always opens `settings` when toggled.
+  useEffect(() => {
+    if (!settingsOpen) setPanel("settings");
+  }, [settingsOpen]);
+
+  // Fold the pad away whenever it stops being usable.
+  useEffect(() => {
+    if (!controlling) setPadOpen(false);
+  }, [controlling]);
+
+  // Follow the pad buttons held down.
+  useEffect(() => {
+    if (!handlers) {
+      setPadHeld([]);
+      return;
+    }
+    handlers.onPad((held) => setPadHeld([...held]));
+  }, [handlers]);
+
   // hold focus
   useEffect(() => {
     if (controlling && !isTouchDevice) keysRef.current?.focus();
@@ -344,28 +368,84 @@ export default function CastView() {
           </svg>
         </button>
 
+        {controlling && (
+          <div className={`stage-pad${padOpen ? " stage-pad-open" : ""}`}>
+            <div className="stage-pad-row">
+              {settings.pad.map((button, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`stage-pad-key${padHeld.includes(i) ? " stage-pad-held" : ""}${padPressed.includes(i) ? " stage-pad-press" : ""}`}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setPadPressed((was) => (was.includes(i) ? was : [...was, i]));
+                    handlers?.padDown(i, button.codes);
+                  }}
+                  onPointerUp={() => {
+                    setPadPressed((was) => was.filter((n) => n !== i));
+                    handlers?.padUp(i);
+                  }}
+                  onPointerCancel={() => {
+                    setPadPressed((was) => was.filter((n) => n !== i));
+                    handlers?.padCancel(i);
+                  }}
+                >
+                  {button.label ?? padLabel(button.codes)}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="stage-pad-toggle"
+              aria-label="Keys"
+              aria-expanded={padOpen}
+              onClick={() => setPadOpen(!padOpen)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         <div
           className={`stage-scrim${settingsOpen ? "" : " stage-hidden"}`}
           onClick={() => setSettingsOpen(false)}
         />
 
         <div className={`stage-drawer${settingsOpen ? " stage-drawer-open" : ""}`}>
-          <div className="stage-drawer-head">
-            <span className="stage-drawer-title">Settings</span>
-            <span className="stage-peer">
-              {watching.label}
-              {!watching.info && " · connecting…"}
-              {sharing && " · sharing your screen"}
-            </span>
-          </div>
-          <div className="stage-drawer-body">
-            <CastSettings />
-          </div>
-          <div className="stage-drawer-foot">
-            <Button variant="danger" onClick={stopWatching}>
-              Stop
-            </Button>
-          </div>
+          {panel === "keys" ? (
+            <KeysPanel onBack={() => setPanel("settings")} />
+          ) : (
+            <>
+              <div className="stage-drawer-head">
+                <span className="stage-drawer-title">Settings</span>
+                <span className="stage-peer">
+                  {watching.label}
+                  {!watching.info && " · connecting…"}
+                  {sharing && " · sharing your screen"}
+                </span>
+              </div>
+              <div className="stage-drawer-body">
+                <CastSettings onKeys={() => setPanel("keys")} />
+              </div>
+              <div className="stage-drawer-foot">
+                <Button variant="danger" onClick={stopWatching}>
+                  Stop
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

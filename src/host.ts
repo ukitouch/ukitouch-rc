@@ -7,7 +7,7 @@ export const {
   React,
   createStore,
   defineExtension,
-  getHostPlatform,
+  getHostInfo,
   setFullscreen,
   startScreenStream,
   startInput,

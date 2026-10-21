@@ -73,6 +73,10 @@ export function createViewer(options: ViewerOptions): InputHandlers {
     onPointerMove: input.onPointerMove,
     onPointerUp: input.onPointerUp,
     onPointerCancel: input.onPointerCancel,
+    padDown: (index, codes) => input.padDown(index, codes),
+    padUp: (index) => input.padUp(index),
+    padCancel: (index) => input.padCancel(index),
+    onPad: (handler) => input.onPad(handler),
     dispose() {
       stop.abort();
       picture.dispose();
@@ -366,7 +370,7 @@ function parseScreen(text: string): ScreenInfo | null {
     };
     const { width, height, source } = parsed.screen ?? {};
     if (typeof width === "number" && typeof height === "number") {
-      const info: ScreenInfo = { width, height, format: "rgba" };
+      const info: ScreenInfo = { width, height };
       if (typeof source?.width === "number" && typeof source.height === "number") {
         info.source = { width: source.width, height: source.height };
       }

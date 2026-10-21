@@ -1,6 +1,6 @@
 import {
   createStore,
-  getHostPlatform,
+  getHostInfo,
   injectInput,
   releaseInput,
   setFullscreen,
@@ -10,9 +10,8 @@ import {
 import type { InputMode } from "./input";
 import type {
   Channel,
-  Cursor,
   DeviceRecord,
-  ExtensionContext,
+  NetContext,
   HostPlatform,
   InputEvent,
   ScreenInfo,
@@ -25,6 +24,16 @@ import type {
 /** Cast only or remote control. */
 export type CastMode = "cast" | "control";
 
+/**
+ * One button on the control pad.
+ */
+export interface PadButton {
+  /** Key codes for this pad, for example ["ControlLeft", "KeyC"] */
+  codes: string[];
+  /** Label of the button. */
+  label?: string;
+}
+
 export interface CastSettings {
   /** see {@link CastMode}, cast only or remote control. */
   mode: CastMode;
@@ -34,6 +43,8 @@ export interface CastSettings {
   cursor: boolean;
   /** Height of the resolution. */
   height: number | null;
+  /** The buttons the control pad offers. */
+  pad: PadButton[];
 }
 
 const SETTINGS_KEY = "yatouch.cast.settings";
@@ -42,6 +53,7 @@ const DEFAULTS: CastSettings = {
   inputMode: "cursor",
   cursor: true,
   height: null,
+  pad: [],
 };
 
 /** Viewer side: re-send the running watch's stream options, or null if none. */
@@ -52,16 +64,34 @@ export function setOptionsSink(sink: (() => void) | null): void {
   optionsSink = sink;
 }
 
+/** Read a stored pad. */
+function readPad(saved: unknown): PadButton[] {
+  if (!Array.isArray(saved)) return DEFAULTS.pad;
+
+  const pad: PadButton[] = [];
+  for (const entry of saved) {
+    const raw = Array.isArray(entry)
+      ? ({ codes: entry } as { codes?: unknown; label?: unknown })
+      : (entry as { codes?: unknown; label?: unknown });
+    const { codes, label } = raw;
+    if (!Array.isArray(codes) || !codes.every((c) => typeof c === "string")) continue;
+    pad.push({ codes, label: typeof label === "string" ? label : undefined });
+  }
+  return pad;
+}
+
 function loadSettings(): CastSettings {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as
       | Partial<CastSettings>
       | null;
+    const pad = saved?.pad;
     return {
       mode: saved?.mode === "control" ? "control" : "cast",
       inputMode: saved?.inputMode === "touch" ? "touch" : "cursor",
       cursor: typeof saved?.cursor === "boolean" ? saved.cursor : DEFAULTS.cursor,
       height: typeof saved?.height === "number" ? saved.height : DEFAULTS.height,
+      pad: readPad(pad),
     };
   } catch {
     return { ...DEFAULTS };
@@ -96,10 +126,15 @@ export function setResolution(height: number | null): void {
   applySettings({ height });
 }
 
+/** Replace the control pad's buttons. */
+export function setPad(pad: PadButton[]): void {
+  applySettings({ pad });
+}
+
 //#endregion
 //#region State
 
-let ctx: ExtensionContext | null = null;
+let ctx: NetContext | null = null;
 
 /** The connection status. */
 export type Connection =
@@ -142,14 +177,14 @@ export function cancelPeerChannel(): Promise<void> {
   return ctx ? ctx.cancelOpenChannel().catch(() => { }) : Promise.resolve();
 }
 
-export function initCast(context: ExtensionContext): void {
+export function initCast(context: NetContext): void {
   ctx = context;
   castStore.set({ devices: context.getKnownDevices() });
   context.subscriptions.push(
     context.onDeviceSeen((devices) => castStore.set({ devices })),
     context.onChannel(serve)
   );
-  void getHostPlatform().then((platform) => castStore.set({ platform }));
+  void getHostInfo().then((i) => castStore.set({ platform: i.platform }));
 }
 
 //#endregion
