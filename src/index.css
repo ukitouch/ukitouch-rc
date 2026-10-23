@@ -116,6 +116,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  pointer-events: none;
 }
 
 .stage-pad-row {
@@ -179,6 +180,7 @@
 .stage-pad-toggle {
   width: 2.25rem;
   border-radius: 9999px;
+  pointer-events: auto;
 }
 
 .stage-pad-toggle svg {
