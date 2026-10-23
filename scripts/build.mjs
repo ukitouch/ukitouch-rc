@@ -13,13 +13,12 @@ await build({
   target: "es2020",
   minify: true,
   jsx: "transform",
-  loader: { ".css": "text" },
   logLevel: "info",
 });
 
 execSync("cp manifest.json dist/manifest.json", { stdio: "inherit" });
 execSync(
-  "cd dist && rm -f yatouch-cast.zip && zip -r yatouch-cast.zip index.js manifest.json",
+  "cd dist && rm -f yatouch-cast.zip && zip -r yatouch-cast.zip index.js index.css manifest.json",
   { stdio: "inherit" }
 );
 console.log("built dist/yatouch-cast.zip");

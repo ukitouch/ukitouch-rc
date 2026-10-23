@@ -1,9 +1,7 @@
+import "./index.css";
 import { React, defineExtension } from "./host";
 import { initCast } from "./main";
-import { applyStyles } from "./styles";
 import CastView from "./view";
-
-applyStyles();
 
 defineExtension({
   id: "cast",
