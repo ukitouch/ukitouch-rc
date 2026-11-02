@@ -32,7 +32,7 @@ export interface PadButton {
   label?: string;
 }
 
-export interface CastSettings {
+export interface ViewerSettings {
   /** see {@link CastMode}, cast only or remote control. */
   mode: CastMode;
   /** see {@link InputMode}, cursor or touch. */
@@ -45,8 +45,8 @@ export interface CastSettings {
   pad: PadButton[];
 }
 
-const SETTINGS_KEY = "yatouch.cast.settings";
-const DEFAULTS: CastSettings = {
+const SETTINGS_KEY = "yatouch.viewer.settings";
+const DEFAULTS: ViewerSettings = {
   mode: "cast",
   inputMode: "cursor",
   cursor: true,
@@ -78,10 +78,10 @@ function readPad(saved: unknown): PadButton[] {
   return pad;
 }
 
-function loadSettings(): CastSettings {
+function loadSettings(): ViewerSettings {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as
-      | Partial<CastSettings>
+      | Partial<ViewerSettings>
       | null;
     const pad = saved?.pad;
     return {
@@ -97,7 +97,7 @@ function loadSettings(): CastSettings {
 }
 
 /** Put a change to our own settings to the peer. */
-function applySettings(patch: Partial<CastSettings>): void {
+function applySettings(patch: Partial<ViewerSettings>): void {
   const settings = { ...castStore.get().settings, ...patch };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   castStore.set({ settings });
@@ -146,7 +146,7 @@ export interface CastState {
   connection: Connection;
   /** Host side: shape of the screen. */
   screenInfo: ScreenInfo | null;
-  settings: CastSettings;
+  settings: ViewerSettings;
   platform: HostPlatform | null;
   error: string | null;
 }
@@ -218,6 +218,46 @@ export async function applyFullscreen(on: boolean): Promise<void> {
 //#endregion
 //#region Host side
 
+interface HostSettings {
+  /** Experimental: smooth motion for the pointer. */
+  smooth: boolean;
+}
+
+const HOST_SETTINGS_KEY = "yatouch.host.settings";
+const HOST_DEFAULTS: HostSettings = { smooth: false };
+
+function loadHostSettings(): HostSettings {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HOST_SETTINGS_KEY) ?? "{}") as
+      | Partial<HostSettings>
+      | null;
+    return {
+      smooth:
+        typeof saved?.smooth === "boolean" ? saved.smooth : HOST_DEFAULTS.smooth,
+    };
+  } catch {
+    return { ...HOST_DEFAULTS };
+  }
+}
+
+let hostSettings: HostSettings = loadHostSettings();
+
+/** Experimental: smooth motion for the pointer. */
+export function getSmoothPointer(): boolean {
+  return hostSettings.smooth;
+}
+
+/** Experimental: smooth motion for the pointer. */
+export function setSmoothPointer(on: boolean): void {
+  hostSettings = { ...hostSettings, smooth: on };
+  localStorage.setItem(HOST_SETTINGS_KEY, JSON.stringify(hostSettings));
+  if (injecting) {
+    void nativeCall("ukitouch.input", "input_configure", {
+      options: { smooth: on },
+    }).catch(() => { });
+  }
+}
+
 /** Host side: batches are injected in order. */
 let injectChain: Promise<unknown> = Promise.resolve();
 /** Whether the peer's input backend is up. */
@@ -228,7 +268,10 @@ function drive(batch: InputEvent[]): void {
   injectChain = injectChain
     .then(async () => {
       if (!injecting) {
-        await nativeCall("ukitouch.input", "input_start");
+        const { smooth } = hostSettings;
+        await nativeCall("ukitouch.input", "input_start", {
+          options: { smooth },
+        }).catch(() => nativeCall("ukitouch.input", "input_start"));
         injecting = true;
       }
       await nativeCall("ukitouch.input", "input_inject", { events: batch });

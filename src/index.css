@@ -22,7 +22,8 @@
   gap: 0.5rem;
 }
 
-.cast-settings {
+.viewer-settings,
+.host-settings {
   display: flex;
   flex-direction: column;
   gap: 1rem;

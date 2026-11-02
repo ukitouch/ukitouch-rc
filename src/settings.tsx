@@ -1,10 +1,12 @@
-import { React, Button, Select, SettingRow } from "./host";
+import { React, Button, Select, SettingRow, Toggle } from "./host";
 import {
   castStore,
+  getSmoothPointer,
   setMode,
   setInputMode,
   setResolution,
   setShowCursor,
+  setSmoothPointer,
 } from "./main";
 import type { ScreenSize } from "./ukitouch";
 
@@ -38,7 +40,7 @@ function resolutions(source?: ScreenSize) {
 }
 
 /** What Cast does with this peer while the watch is up. */
-export function CastSettings({ onKeys }: { onKeys: () => void }) {
+export function ViewerSettings({ onKeys }: { onKeys: () => void }) {
   const { settings, connection } = React.useSyncExternalStore(
     castStore.subscribe,
     castStore.get
@@ -51,7 +53,7 @@ export function CastSettings({ onKeys }: { onKeys: () => void }) {
   const value = options.some((o) => o.value === picked) ? picked : SOURCE;
 
   return (
-    <div className="cast-settings">
+    <div className="viewer-settings">
       <SettingRow
         label="Mode"
         hint={
@@ -124,6 +126,30 @@ export function CastSettings({ onKeys }: { onKeys: () => void }) {
           }
         />
       )}
+    </div>
+  );
+}
+
+/** TODO: temporary here, waiting for settings for extensions support */
+export function HostSettings() {
+  const [smooth, setSmooth] = React.useState(getSmoothPointer);
+
+  return (
+    <div className="host-settings">
+      <SettingRow
+        label="Experimental: smooth pointer"
+        hint="smooth motion for the pointer"
+        action={
+          <Toggle
+            checked={smooth}
+            ariaLabel="Smooth pointer"
+            onChange={(on: boolean) => {
+              setSmooth(on);
+              setSmoothPointer(on);
+            }}
+          />
+        }
+      />
     </div>
   );
 }

@@ -12,5 +12,5 @@ export const {
   nativeCall,
 } = host;
 
-export const { Button, PageHeader, PeerDeviceSearch, PinchArea, Select, SettingRow } =
+export const { Button, PageHeader, PeerDeviceSearch, PinchArea, Select, SettingRow, Toggle } =
   host.components;

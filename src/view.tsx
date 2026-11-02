@@ -1,5 +1,5 @@
 import { React, Button, PageHeader, PeerDeviceSearch, PinchArea } from "./host";
-import { CastSettings } from "./settings";
+import { HostSettings, ViewerSettings } from "./settings";
 import { castStore, stop } from "./main";
 import {
   attachViewer,
@@ -437,7 +437,7 @@ export default function CastView() {
                 </span>
               </div>
               <div className="stage-drawer-body">
-                <CastSettings onKeys={() => setPanel("keys")} />
+                <ViewerSettings onKeys={() => setPanel("keys")} />
               </div>
               <div className="stage-drawer-foot">
                 <Button variant="danger" onClick={stopWatching}>
@@ -506,6 +506,13 @@ export default function CastView() {
           {connection.status === "connecting" ? "Cancel" : "Connect"}
         </Button>
       </div>
+
+      {state.platform !== "android" && (
+        <>
+          <hr style={{ borderColor: "#6b7280" }} />
+          <HostSettings />
+        </>
+      )}
     </div>
   );
 }
