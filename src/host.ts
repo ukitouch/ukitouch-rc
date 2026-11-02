@@ -1,7 +1,7 @@
 /**
  * The host runtime this extension runs on.
  */
-const host = window.yatouch;
+const host = window.ukitouch;
 
 export const {
   React,
@@ -9,11 +9,7 @@ export const {
   defineExtension,
   getHostInfo,
   setFullscreen,
-  startScreenStream,
-  startInput,
-  injectInput,
-  releaseInput,
-  stopInput,
+  nativeCall,
 } = host;
 
 export const { Button, PageHeader, PeerDeviceSearch, PinchArea, Select, SettingRow } =

@@ -1,7 +1,8 @@
 {
-  "id": "cast",
-  "name": "Cast",
+  "publisher": "ukitouch",
+  "name": "remote-control",
   "version": "0.1.0",
+  "kind": "frontend",
   "entry": "index.js",
   "style": "index.css"
 }

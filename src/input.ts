@@ -1,4 +1,4 @@
-import type { Channel, InputEvent, MouseButton, Point } from "./yatouch";
+import type { Channel, InputEvent, MouseButton, Point } from "./ukitouch";
 
 //#region Magics
 

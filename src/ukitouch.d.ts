@@ -14,7 +14,7 @@ export type Layout = "withSidebar" | "fullscreen";
 /** Host system info reported by the hello handshake. */
 export interface HostInfo {
   name: string | null;
-  platform: Platform | null;
+  platform: HostPlatform | null;
   os: string | null;
 }
 
@@ -29,6 +29,10 @@ export interface Channel {
   onclose: ((ev: Event) => void) | null;
   onopen: ((ev: Event) => void) | null;
   onerror: ((ev: Event) => void) | null;
+  /**
+   * Bridge a loopback TCP address into this channel.
+   */
+  bindPipe?(addr: string): Promise<Disposable>;
 }
 
 /** WebRTC transport open spec. */
@@ -79,6 +83,8 @@ export interface NetContext {
   setLayout(layout: Layout): void;
   openChannel(request: OpenSpec): Promise<Channel>;
   onChannel(handler: (channel: Channel) => void): Disposable;
+  /** Bridge a sidecar's loopback pipe into an opened channel. */
+  bindPipe(channel: Channel, addr: string): Promise<Disposable>;
   cancelOpenChannel(): Promise<void>;
   getKnownDevices(): DeviceRecord[];
   onDeviceSeen(handler: (devices: DeviceRecord[]) => void): Disposable;
@@ -115,11 +121,6 @@ export interface Damage {
   height: number;
 }
 
-/** A rectangle's pixels, exactly `width * height * 4` bytes, row-major RGBA. */
-export interface DamageFrame extends Damage {
-  data: Uint8Array;
-}
-
 /**
  * How the cursor appears in the stream.
  * 
@@ -141,33 +142,14 @@ export interface StreamOptions extends CaptureOptions {
   resolutionScale?: number;
 }
 
-/** Reasons capture could not start or stopped on its own. */
-export type CaptureFailure = "denied" | "cancelled" | "unsupported";
-
-/** Result of trying to start a monitor. */
-export type StartResult =
-  | { ok: true; monitor: ScreenMonitor }
-  | { ok: false; reason: CaptureFailure; detail?: string };
-
-/** A running screen source. */
-export interface ScreenMonitor {
-  readonly info: ScreenInfo;
-  onDamage(handler: (frames: DamageFrame[]) => void): Disposable;
-  onStop(handler: (reason?: string) => void): Disposable;
-  resync(): Promise<void>;
-  configure(options: CaptureOptions): Promise<void>;
-  stop(): Promise<void>;
-}
-
-/** A running screen stream to a peer. */
-export interface ScreenStream {
-  readonly id: number;
-  /** Shape of the screen being sent. */
-  readonly info: ScreenInfo;
-  /** Change how the screen is captured; the peer is told the new shape. */
-  configure(options: StreamOptions): Promise<void>;
-  /** Stop sending. */
-  stop(): Promise<void>;
+/** A started native capture stream. */
+export interface Started {
+  id: number;
+  /** Shape of the frames the sidecar sends. */
+  width: number;
+  height: number;
+  /** Loopback address to bridge into the channel. */
+  addr: string;
 }
 
 /** Where a `PinchArea`'s content sits after a gesture, in area pixels. */
@@ -179,7 +161,6 @@ export interface PinchTransform {
 
 /** What an extension declares. */
 export interface ExtensionDefinition {
-  id: string;
   title?: string;
   icon?: ReactNode;
   platforms?: HostPlatform[];
@@ -204,8 +185,8 @@ export type InputEvent =
   | { kind: "key"; code: string; pressed: boolean }
   | { kind: "text"; text: string };
 
-/** The runtime surface exposed on `window.yatouch`. */
-export interface YatouchRuntime {
+/** The runtime surface exposed on `window.ukitouch`. */
+export interface UkitouchRuntime {
   React: typeof import("react");
   components: {
     Select: ComponentType<{
@@ -276,38 +257,24 @@ export interface YatouchRuntime {
     }>;
   };
   defineExtension(def: ExtensionDefinition): void;
-  getHostPlatform(): Promise<HostPlatform>;
   getHostInfo(): Promise<HostInfo>;
   /** Hold the app fullscreen (Android only). */
   setFullscreen(on: boolean): Promise<void>;
-  /** Read the system clipboard as plain text. */
-  readClipboardText(): Promise<string>;
-  /** Write plain text to the system clipboard. */
-  writeClipboardText(text: string): Promise<void>;
   refreshUsbDevices(): Promise<void>;
   usbStore: Store<{ devices: UsbDevice[] }>;
   createStore<T extends object>(initial: T): Store<T>;
-  /** Start capturing the screen. */
-  createScreenMonitor(options?: CaptureOptions): Promise<StartResult>;
-  /** Stream the screen onto an open channel. */
-  startScreenStream(
-    channel: Channel,
-    options?: StreamOptions
-  ): Promise<ScreenStream>;
-  /** Bring the input backend up. */
-  startInput(): Promise<void>;
-  /** Synthesize a batch of input events. */
-  injectInput(events: InputEvent[]): Promise<void>;
-  /** Release everything the input backend is holding down. */
-  releaseInput(): Promise<void>;
-  /** Release and drop the input backend. */
-  stopInput(): Promise<void>;
+  /** Call a method on a native extension. */
+  nativeCall<T = unknown>(
+    extId: string,
+    method: string,
+    payload?: unknown
+  ): Promise<T>;
   showToast(message: string, kind?: ToastKind): void;
 }
 
 declare global {
   interface Window {
     /** Runtime entry point for installed (zip) extensions. */
-    yatouch: YatouchRuntime;
+    ukitouch: UkitouchRuntime;
   }
 }

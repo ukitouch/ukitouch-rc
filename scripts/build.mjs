@@ -18,7 +18,7 @@ await build({
 
 execSync("cp manifest.json dist/manifest.json", { stdio: "inherit" });
 execSync(
-  "cd dist && rm -f yatouch-cast.zip && zip -r yatouch-cast.zip index.js index.css manifest.json",
+  "cd dist && rm -f ukitouch-rc.zip && zip -r ukitouch-rc.zip index.js index.css manifest.json",
   { stdio: "inherit" }
 );
-console.log("built dist/yatouch-cast.zip");
+console.log("built dist/ukitouch-rc.zip");

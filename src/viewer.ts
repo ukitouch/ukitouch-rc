@@ -9,7 +9,7 @@ import {
   setOptionsSink,
 } from "./main";
 import { ViewerPicture, type CursorSpot } from "./picture";
-import type { Channel, Cursor, ScreenInfo, ScreenSize } from "./yatouch";
+import type { Channel, Cursor, ScreenInfo, ScreenSize } from "./ukitouch";
 
 //#region Viewer
 

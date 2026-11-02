@@ -1,23 +1,21 @@
 import {
   createStore,
   getHostInfo,
-  injectInput,
-  releaseInput,
+  nativeCall,
   setFullscreen,
-  startInput,
-  startScreenStream,
 } from "./host";
 import type { InputMode } from "./input";
 import type {
   Channel,
   DeviceRecord,
+  Disposable,
   NetContext,
   HostPlatform,
   InputEvent,
   ScreenInfo,
-  ScreenStream,
+  Started,
   StreamOptions,
-} from "./yatouch";
+} from "./ukitouch";
 
 //#region Settings
 
@@ -191,7 +189,7 @@ export function initCast(context: NetContext): void {
 //#region Layout
 
 /** Host side: the single peer we are streaming to. */
-let share: { channel: Channel; stream: ScreenStream } | null = null;
+let share: { channel: Channel; id: number; pipe: Disposable } | null = null;
 /** Whether we currently hold the window in fullscreen for a watch. */
 let fullscreenOn = false;
 
@@ -230,10 +228,10 @@ function drive(batch: InputEvent[]): void {
   injectChain = injectChain
     .then(async () => {
       if (!injecting) {
-        await startInput();
+        await nativeCall("ukitouch.input", "input_start");
         injecting = true;
       }
-      await injectInput(batch);
+      await nativeCall("ukitouch.input", "input_inject", { events: batch });
     })
     .catch((err) => {
       injecting = false;
@@ -245,7 +243,7 @@ function drive(batch: InputEvent[]): void {
 function releaseInputs(): void {
   injectChain = injectChain
     .then(async () => {
-      if (injecting) await releaseInput();
+      if (injecting) await nativeCall("ukitouch.input", "input_release");
     })
     .catch(() => { });
 }
@@ -262,7 +260,7 @@ async function serve(channel: Channel): Promise<void> {
   channel.onclose = () => {
     closed = true;
     releaseInputs();
-    if (share?.channel === channel) stopSharing();
+    if (share?.channel === channel) stop();
   };
 
   let options: StreamOptions = {};
@@ -271,7 +269,7 @@ async function serve(channel: Channel): Promise<void> {
     const next = parseRequest(ev.data);
     if (next) {
       options = next;
-      void share?.stream.configure(options).catch(() => { });
+      configure(options);
       return;
     }
 
@@ -280,30 +278,62 @@ async function serve(channel: Channel): Promise<void> {
     if (batch) drive(batch);
   };
 
+  let started: Started | null = null;
   try {
-    const stream = await startScreenStream(channel, options);
+    started = await nativeCall<Started>("ukitouch.capture", "start_screen_stream", {
+      options,
+    });
     if (closed) {
-      void stream.stop().catch(() => { });
+      void stopStream(started.id);
       return;
     }
-    share = { channel, stream };
-    castStore.set({ screenInfo: stream.info, error: null });
+
+    const pipe = await ctx!.bindPipe(channel, started.addr);
+    if (closed) {
+      pipe.dispose();
+      void stopStream(started.id);
+      return;
+    }
+
+    share = { channel, id: started.id, pipe };
+    castStore.set({
+      screenInfo: { width: started.width, height: started.height },
+      error: null,
+    });
 
     // A request that landed while the stream was starting still has to apply.
-    void stream.configure(options).catch(() => { });
+    configure(options);
   } catch (err) {
+    if (started) void stopStream(started.id);
     channel.close();
     castStore.set({ error: describe(err) });
   }
 }
 
-/** Stop streaming. */
-export function stopSharing(): void {
+/** Put the latest capture options to the running stream. */
+function configure(options: StreamOptions): void {
+  if (!share) return;
+  void nativeCall("ukitouch.capture", "stream_configure", {
+    id: share.id,
+    options,
+  }).catch(() => { });
+}
+
+/** Stop a stream. */
+async function stopStream(id: number): Promise<unknown> {
+  return nativeCall("ukitouch.capture", "stop_screen_stream", { id }).catch(
+    () => { }
+  );
+}
+
+/** Host side: stop and close the channel. */
+export function stop(): void {
   if (!share) return;
   const stopped = share;
   share = null;
   castStore.set({ screenInfo: null });
-  void stopped.stream.stop().catch(() => { });
+  stopped.pipe.dispose();
+  void stopStream(stopped.id);
   stopped.channel.close();
 }
 

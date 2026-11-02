@@ -4,8 +4,7 @@ import { initCast } from "./main";
 import CastView from "./view";
 
 defineExtension({
-  id: "cast",
-  title: "Cast",
+  title: "Remote Control",
   icon: (
     <svg
       xmlns="http://www.w3.org/2000/svg"

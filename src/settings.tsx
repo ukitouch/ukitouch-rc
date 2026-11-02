@@ -6,7 +6,7 @@ import {
   setResolution,
   setShowCursor,
 } from "./main";
-import type { ScreenSize } from "./yatouch";
+import type { ScreenSize } from "./ukitouch";
 
 /** The entry that asks for the peer's own size. */
 const SOURCE = "source";

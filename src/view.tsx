@@ -1,6 +1,6 @@
 import { React, Button, PageHeader, PeerDeviceSearch, PinchArea } from "./host";
 import { CastSettings } from "./settings";
-import { castStore, stopSharing } from "./main";
+import { castStore, stop } from "./main";
 import {
   attachViewer,
   cancelWatch,
@@ -463,7 +463,7 @@ export default function CastView() {
       {sharing && (
         <div className="cast-row">
           <span className="cast-note">Sharing this screen</span>
-          <Button variant="danger" onClick={stopSharing}>
+          <Button variant="danger" onClick={stop}>
             Stop
           </Button>
         </div>
