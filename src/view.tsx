@@ -196,7 +196,7 @@ export default function CastView() {
       },
     });
     return () => setViewer(null);
-  }, []);
+  }, [isWatching]);
 
   // The peer's cursor image, will be drawn by viewer itself.
   useEffect(() => {
