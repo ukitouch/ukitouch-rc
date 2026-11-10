@@ -1,9 +1,9 @@
 {
-  "name": "yatouch-cast",
+  "name": "ukitouch-rc",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Screen casting extension for YATouch.",
+  "description": "Remote control extension for ukitouch.",
   "scripts": {
     "build": "node scripts/build.mjs"
   },

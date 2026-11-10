@@ -456,7 +456,7 @@ export default function CastView() {
 
   return (
     <div className="cast-page">
-      <PageHeader title="Cast" subtitle="Watch another device's screen" />
+      <PageHeader title="Remote Control" subtitle="remote control other devices" />
 
       {error && <p className="cast-error">{error}</p>}
 
