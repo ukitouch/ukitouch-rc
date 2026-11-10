@@ -485,6 +485,7 @@ export default function CastView() {
           onCreate={(id) => {
             setSelectedUuid(null);
             setText(id);
+            requestWatch(id, id);
           }}
         />
         <Button
