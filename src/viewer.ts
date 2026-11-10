@@ -1,3 +1,4 @@
+import { parseError, reportError, showPeerError } from "./errors";
 import { ViewerInput, type InputHandlers, type InputMode, type ScreenMap } from "./input";
 import {
   applyFullscreen,
@@ -98,6 +99,9 @@ let viewer: CastViewer | null = null;
 
 export function setViewer(v: CastViewer | null): void {
   viewer = v;
+  const c = castStore.get().connection;
+  const info = c.status === "connected" ? c.info : null;
+  if (v && info) v.resize(info.width, info.height);
 }
 
 /** Where the peer's cursor image will be drawn. */
@@ -142,7 +146,6 @@ export async function requestWatch(target: string, label: string): Promise<void>
   const seq = ++watchSeq;
   castStore.set({
     connection: { status: "connecting", peerId: target, label },
-    error: null,
   });
 
   try {
@@ -152,24 +155,17 @@ export async function requestWatch(target: string, label: string): Promise<void>
       return;
     }
 
-    // bind the viewer and store the status
+    // bind the viewer
     watchChannel = channel;
     sized = false;
     bindViewer(channel);
     setOptionsSink(sendOptions);
     sendOptions();
-    castStore.set({
-      connection: { status: "connected", peerId: target, label, info: null },
-    });
-    setLayout(true);
-    void applyFullscreen(true);
   } catch (err) {
     if (seq !== watchSeq) return;
 
-    castStore.set({
-      connection: { status: "idle" },
-      error: `connect failed: ${String(err)}`,
-    });
+    castStore.set({ connection: { status: "idle" } });
+    reportError(`connect failed: ${String(err)}`);
   }
 }
 
@@ -244,12 +240,31 @@ function sendOptions(): void {
 function bindViewer(channel: Channel): void {
   channel.onmessage = (ev) => {
     if (typeof ev.data === "string") {
+      // data type: an error from the host
+      const message = parseError(ev.data);
+      if (message) {
+        showPeerError(message.message);
+        if (message.fatal) stopWatching();
+        return;
+      }
+
       // data type: screen info
       const screen = parseScreen(ev.data);
       if (screen) {
         pendingFrame = null;
         const c = castStore.get().connection;
-        if (c.status === "connected") {
+        if (c.status === "connecting") {
+          castStore.set({
+            connection: {
+              status: "connected",
+              peerId: c.peerId,
+              label: c.label,
+              info: screen,
+            },
+          });
+          setLayout(true);
+          void applyFullscreen(true);
+        } else if (c.status === "connected") {
           castStore.set({ connection: { ...c, info: screen } });
         }
 

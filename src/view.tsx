@@ -64,7 +64,7 @@ export default function CastView() {
 
   const state = React.useSyncExternalStore(castStore.subscribe, castStore.get);
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
-  const { devices, connection, screenInfo, error, settings, platform } = state;
+  const { devices, connection, screenInfo, settings, platform } = state;
   const isTouchDevice = platform === "android"; // currently only Android implemented
   const watching = connection.status === "connected" ? connection : null;
   const sharing = screenInfo !== null;
@@ -458,8 +458,6 @@ export default function CastView() {
     <div className="cast-page">
       <PageHeader title="Remote Control" subtitle="remote control other devices" />
 
-      {error && <p className="cast-error">{error}</p>}
-
       {sharing && (
         <div className="cast-row">
           <span className="cast-note">Sharing this screen</span>
@@ -510,7 +508,7 @@ export default function CastView() {
 
       {state.platform !== "android" && (
         <>
-          <hr style={{ borderColor: "#6b7280" }} />
+          <hr className="divider" />
           <HostSettings />
         </>
       )}

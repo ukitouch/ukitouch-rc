@@ -4,6 +4,7 @@ import {
   nativeCall,
   setFullscreen,
 } from "./host";
+import { parseError, reportError, showPeerError } from "./errors";
 import type { InputMode } from "./input";
 import type {
   Channel,
@@ -148,7 +149,6 @@ export interface CastState {
   screenInfo: ScreenInfo | null;
   settings: ViewerSettings;
   platform: HostPlatform | null;
-  error: string | null;
 }
 
 export const castStore = createStore<CastState>({
@@ -157,7 +157,6 @@ export const castStore = createStore<CastState>({
   screenInfo: null,
   settings: loadSettings(),
   platform: null,
-  error: null,
 });
 
 /** Whether the extension is up, and a peer channel can be opened. */
@@ -211,7 +210,7 @@ export async function applyFullscreen(on: boolean): Promise<void> {
   try {
     await setFullscreen(on);
   } catch (err) {
-    castStore.set({ error: String(err) });
+    reportError(String(err));
   }
 }
 
@@ -264,7 +263,7 @@ let injectChain: Promise<unknown> = Promise.resolve();
 let injecting = false;
 
 /** Drive the peer with a viewer's input batch. */
-function drive(batch: InputEvent[]): void {
+function drive(batch: InputEvent[], channel: Channel): void {
   injectChain = injectChain
     .then(async () => {
       if (!injecting) {
@@ -278,7 +277,7 @@ function drive(batch: InputEvent[]): void {
     })
     .catch((err) => {
       injecting = false;
-      castStore.set({ error: String(err) });
+      reportError(String(err), channel);
     });
 }
 
@@ -308,6 +307,13 @@ async function serve(channel: Channel): Promise<void> {
 
   let options: StreamOptions = {};
   channel.onmessage = (ev) => {
+    // data type: an error from the viewer
+    const message = parseError(ev.data);
+    if (message) {
+      showPeerError(message.message);
+      return;
+    }
+
     // data type: capture options
     const next = parseRequest(ev.data);
     if (next) {
@@ -318,7 +324,7 @@ async function serve(channel: Channel): Promise<void> {
 
     // data type: input
     const batch = parseInput(ev.data);
-    if (batch) drive(batch);
+    if (batch) drive(batch, channel);
   };
 
   let started: Started | null = null;
@@ -341,15 +347,13 @@ async function serve(channel: Channel): Promise<void> {
     share = { channel, id: started.id, pipe };
     castStore.set({
       screenInfo: { width: started.width, height: started.height },
-      error: null,
     });
 
     // A request that landed while the stream was starting still has to apply.
     configure(options);
   } catch (err) {
     if (started) void stopStream(started.id);
-    channel.close();
-    castStore.set({ error: describe(err) });
+    reportError(describe(err), channel, true);
   }
 }
 
