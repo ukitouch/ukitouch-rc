@@ -229,6 +229,13 @@ export interface UkitouchRuntime {
       onClick?: () => void;
       disabled?: boolean;
     }>;
+    Toggle: ComponentType<{
+      checked: boolean;
+      onChange: (checked: boolean) => void;
+      ariaLabel: string;
+      disabled?: boolean;
+      className?: string;
+    }>;
     SettingRow: ComponentType<{
       label: ReactNode;
       action?: ReactNode;
