@@ -138,7 +138,7 @@ export function HostSettings() {
     <div className="host-settings">
       <SettingRow
         label="Experimental: smooth pointer"
-        hint="smooth motion for the pointer"
+        hint="smooth motion for the pointer, causes higher latency"
         action={
           <Toggle
             checked={smooth}
