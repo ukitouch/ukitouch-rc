@@ -4,5 +4,17 @@
   "version": "0.1.0",
   "kind": "frontend",
   "entry": "index.js",
-  "style": "index.css"
+  "style": "index.css",
+  "requires": [
+    {
+      "publisher": "ukitouch",
+      "name": "input",
+      "url": "https://github.com/ukitouch/ukitouch-input"
+    },
+    {
+      "publisher": "ukitouch",
+      "name": "capture",
+      "url": "https://github.com/ukitouch/ukitouch-capture"
+    }
+  ]
 }
