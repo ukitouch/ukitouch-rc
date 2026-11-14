@@ -1,4 +1,5 @@
-import { React, Button, PageHeader, PeerDeviceSearch, PinchArea } from "./host";
+import React from "react";
+import { Button, PageHeader, PeerDeviceSearch, PinchArea } from "@ukitouch/extension";
 import { HostSettings, ViewerSettings } from "./settings";
 import { castStore, stop } from "./main";
 import {

@@ -1,3 +1,4 @@
+import { Channel } from "@ukitouch/extension";
 import { parseError, reportError, showPeerError } from "./errors";
 import { ViewerInput, type InputHandlers, type InputMode, type ScreenMap } from "./input";
 import {
@@ -10,7 +11,7 @@ import {
   setOptionsSink,
 } from "./main";
 import { ViewerPicture, type CursorSpot } from "./picture";
-import type { Channel, Cursor, ScreenInfo, ScreenSize } from "./ukitouch";
+import type { Cursor, ScreenInfo, ScreenSize } from "./rc";
 
 //#region Viewer
 

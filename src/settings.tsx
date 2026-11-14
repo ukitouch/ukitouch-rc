@@ -1,4 +1,5 @@
-import { React, Button, Select, SettingRow, Toggle } from "./host";
+import React from "react";
+import { Button, Select, SettingRow, Toggle } from "@ukitouch/extension";
 import {
   castStore,
   getSmoothPointer,
@@ -8,7 +9,7 @@ import {
   setShowCursor,
   setSmoothPointer,
 } from "./main";
-import type { ScreenSize } from "./ukitouch";
+import type { ScreenSize } from "./rc";
 
 /** The entry that asks for the peer's own size. */
 const SOURCE = "source";
@@ -95,7 +96,6 @@ export function ViewerSettings({ onKeys }: { onKeys: () => void }) {
           hint="Ask the peer to include its mouse cursor in the stream."
           action={
             <Button
-              variant="ghost"
               onClick={() => setShowCursor(!settings.cursor)}
             >
               {settings.cursor ? "On" : "Off"}
@@ -120,7 +120,7 @@ export function ViewerSettings({ onKeys }: { onKeys: () => void }) {
           label="Keys"
           hint="The buttons the control pad offers."
           action={
-            <Button variant="ghost" onClick={onKeys}>
+            <Button onClick={onKeys}>
               Edit
             </Button>
           }

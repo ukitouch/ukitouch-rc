@@ -1,5 +1,4 @@
-import { showToast } from "./host";
-import type { Channel } from "./ukitouch";
+import { Channel, showToast } from "@ukitouch/extension";
 
 /** Show this side's error, and put it to the peer. */
 export function reportError(message: string, peer?: Channel | null, fatal = false): void {

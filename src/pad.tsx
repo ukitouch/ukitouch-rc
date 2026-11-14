@@ -1,4 +1,5 @@
-import { React, Button } from "./host";
+import React from "react";
+import { Button } from "@ukitouch/extension";
 import { castStore, setPad } from "./main";
 import type { PadButton } from "./main";
 
@@ -523,10 +524,10 @@ export function KeysPanel({ onBack }: { onBack: () => void }) {
         })}
       </div>
       <div className="stage-drawer-foot keys-actions">
-        <Button variant="ghost" onClick={() => setDraft(null)}>
+        <Button onClick={() => setDraft(null)}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={save} disabled={draft.codes.length === 0}>
+        <Button onClick={save} disabled={draft.codes.length === 0}>
           Save
         </Button>
       </div>

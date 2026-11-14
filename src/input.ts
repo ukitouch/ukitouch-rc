@@ -1,4 +1,5 @@
-import type { Channel, InputEvent, MouseButton, Point } from "./ukitouch";
+import { Channel } from "@ukitouch/extension";
+import type { InputEvent, MouseButton, Point } from "./rc";
 
 //#region Magics
 

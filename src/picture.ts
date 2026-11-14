@@ -1,4 +1,4 @@
-import type { Point, ScreenSize } from "./ukitouch";
+import type { Point, ScreenSize } from "./rc";
 
 //#region Magics
 

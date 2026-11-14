@@ -1,22 +1,22 @@
 import {
+  Channel,
   createStore,
+  DeviceRecord,
+  Disposable,
   getHostInfo,
   nativeCall,
+  NetContext,
+  Platform,
   setFullscreen,
-} from "./host";
+} from "@ukitouch/extension";
 import { parseError, reportError, showPeerError } from "./errors";
 import type { InputMode } from "./input";
 import type {
-  Channel,
-  DeviceRecord,
-  Disposable,
-  NetContext,
-  HostPlatform,
   InputEvent,
   ScreenInfo,
   Started,
   StreamOptions,
-} from "./ukitouch";
+} from "./rc";
 
 //#region Settings
 
@@ -148,7 +148,7 @@ export interface CastState {
   /** Host side: shape of the screen. */
   screenInfo: ScreenInfo | null;
   settings: ViewerSettings;
-  platform: HostPlatform | null;
+  platform: Platform | null;
 }
 
 export const castStore = createStore<CastState>({

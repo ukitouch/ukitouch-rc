@@ -1,5 +1,6 @@
 import "./index.css";
-import { React, defineExtension } from "./host";
+import React from "react";
+import { defineExtension } from "@ukitouch/extension";
 import { initCast } from "./main";
 import CastView from "./view";
 
