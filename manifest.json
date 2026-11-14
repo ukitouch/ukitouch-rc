@@ -9,11 +9,13 @@
     {
       "publisher": "ukitouch",
       "name": "input",
+      "platforms": ["windows", "linux"],
       "url": "https://github.com/ukitouch/ukitouch-input"
     },
     {
       "publisher": "ukitouch",
       "name": "capture",
+      "platforms": ["windows", "linux"],
       "url": "https://github.com/ukitouch/ukitouch-capture"
     }
   ]
