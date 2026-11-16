@@ -314,6 +314,16 @@ async function serve(channel: Channel): Promise<void> {
       return;
     }
 
+    // data type: ack from the viewer
+    if (parseAck(ev.data)) {
+      if (share) {
+        void nativeCall("ukitouch.capture", "stream_ack", {
+          id: share.id,
+        }).catch(() => { });
+      }
+      return;
+    }
+
     // data type: capture options
     const next = parseRequest(ev.data);
     if (next) {
@@ -382,6 +392,16 @@ export function stop(): void {
   stopped.pipe.dispose();
   void stopStream(stopped.id);
   stopped.channel.close();
+}
+
+/** Read a viewer's frame acknowledgment off the channel. */
+function parseAck(data: unknown): boolean {
+  if (typeof data !== "string") return false;
+  try {
+    return (JSON.parse(data) as { ack?: unknown }).ack === true;
+  } catch {
+    return false;
+  }
 }
 
 /** Read a viewer's options off the channel. */

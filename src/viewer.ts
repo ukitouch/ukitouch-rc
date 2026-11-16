@@ -287,6 +287,8 @@ function bindViewer(channel: Channel): void {
       // data type: a frame
       const frame = parseFrame(ev.data);
       if (frame) {
+        // acknowledge at once
+        channel.send(JSON.stringify({ ack: true }));
         pendingFrame = { rects: frame.rects, total: frame.total, chunks: [], have: 0 };
       }
       return;
