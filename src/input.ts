@@ -133,8 +133,8 @@ export class ViewerInput extends EventTarget implements InputHandlers {
   /**
    * Anchor for a relative pointer drag in cursor mode.
    * 
-   * - `fingerFrom` - the finger's position when it was about to drag the cursor
-   * - `cursorFrom` - the host cursor's position when the anchor was taken
+   * - `fingerFrom` - the finger's last recorded position
+   * - `cursorFrom` - the host cursor's position when it was last recorded
    */
   private pointerMoveAnchor: { fingerFrom: Point; cursorFrom: Point } | null = null;
   /** Whether the current pointer has moved too far to be a tap. */
@@ -591,10 +591,15 @@ export class ViewerInput extends EventTarget implements InputHandlers {
       if (anchor) {
         const d = this.map.hostDelta(anchor.fingerFrom, p);
         if (!d) return;
-        this.moveTo(this.map.clampHost({
+        const next = this.map.clampHost({
           x: anchor.cursorFrom.x + d.x,
           y: anchor.cursorFrom.y + d.y,
-        }));
+        });
+
+        // slide the anchor with the move
+        anchor.fingerFrom = p;
+        anchor.cursorFrom = next;
+        this.moveTo(next);
         return;
       }
       const o = entry.origin;
